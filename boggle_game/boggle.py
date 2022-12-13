@@ -17,162 +17,108 @@ ALPHABET = 'abcdefghijklmnopqrstuvwxyz'
 
 def main():
     """
-    Find all the ans in a boggle game!
+    TODO:
     """
-    print('')
-    print(f'Please enter {SIDE_LENGTH} letters in each row, and each letter must be separated with a space! ')
-    #  Check the format of user's input and make a list and dict with those letters
-    char_dict = {}
-    letter_list = []
-    for i in range(SIDE_LENGTH):
-        row = input(f'{i + 1} row of letters: ')
-        if not row.replace(' ', '').isalpha() or len(row.replace(' ', '')) != SIDE_LENGTH or len(
-                row) < SIDE_LENGTH * 2 - 1 or len(row) > SIDE_LENGTH * 2:
-            print('Illegal input')
+    position_dict = {}
+    letters = ''  # 'fycliomgorilhjhu'
+    for i in range(ROW):
+        chars = input(f'{str(i + 1)} row of letters: ')
+        # Checking format
+        chars = chars.replace(' ', '')
+        chars = chars.lower()
+        letters += chars
+        if len(chars) != ROW or not chars.isalpha():
+            print('Illegal format')
             break
+        # Collect data
         else:
-            for j in range(len(row.replace(' ', ''))):
-                char = row.replace(' ', '')[j].lower()
-                char_dict[i * SIDE_LENGTH + j] = char
-                if char not in letter_list:  # Drop out the repeated letters
-                    letter_list.append(char)
+            for j in range(ROW):
+                position_dict[(j, i)] = chars[j]  # { (0, 0): 'i', (1, 0): 'o'......}
     start = time.time()
-    dictionary = read_dictionary(letter_list)
-    all_words = find_the_words(char_dict, dictionary)
-    for word in all_words:
-        print(f'Found "{word}"')
-    print(f'There are {len(all_words)} words in total.')
     ####################
+    dictionary = read_dictionary(letters)
+    for lst in find_real_word(position_dict, dictionary):
+        for word in lst:
+            if word in dictionary[word[0]]:
+                print(word)
     ####################
     end = time.time()
     print('----------------------------------')
     print(f'The speed of your boggle algorithm: {end - start} seconds.')
 
 
-def find_the_words(char_dict, dictionary):
-    word_list = []
-    for key in char_dict:
-        word_list += find_the_word_helper(char_dict, key, [key], dictionary, [])
-    return word_list
-
-
-def find_the_word_helper(char_dict, key, current, dictionary, list):
+def find_real_word(position_dict, dictionary):
     """
-    :param char_dict: (dict) gives every letter a different number to make each letter distinguished.
-    :param key: (int) key
-    :param current: (list) contains the keys of the words appended into it.
-    :param dictionary: (list) the dictionary
-    :return list: (list) all the word start with the letter which is also within the dictionary
+    :param position_dict: dict, { (coordinate tuple): 'char' }
+    :return: list[list[str]], a list contains several lists having strings
     """
-    s = ''
-    for key in current:
-        value = char_dict[key]
-        s += value
-    if len(current) >= SIDE_LENGTH:
-        if s in dictionary and s not in list:
-            list.append(s)
-        if has_prefix(s, dictionary):
-            next_list = next_(key)
-            for key in next_list:
-                if key in current:
-                    pass
-                else:
-                    current.append(key)
-                    find_the_word_helper(char_dict, current[-1], current, dictionary, list)
-                    current.pop()
+    whole_possibility = []
+    for position in position_dict:
+        whole_possibility.append(find_real_word_helper(position_dict[position], position_dict, [position], [], dictionary))
+    return whole_possibility
+
+def find_real_word_helper(current_str, position_dict, used_position, words, dictionary):
+    """
+    :param current_str: the word in process
+    :param position_dict: the coordinate to each char
+    :param used_position: the coordinates have been connected
+    :param words:
+    :param dictionary:
+    :return:
+    """
+    if len(current_str) == ROW * ROW:
+        pass
     else:
-        if has_prefix(s, dictionary):
-            next_list = next_(key)
-            for key in next_list:
-                if key in current:
-                    pass
-                else:
-                    current.append(key)
-                    find_the_word_helper(char_dict, current[-1], current, dictionary, list)
-                    current.pop()
-    return list
+        # x = used_position[-1][0]
+        # for x in x-1, x, x+1:
+        #     y = used_position[-1][1]
+        #     for y in y-1, y, y+1:
+        x = used_position[-1][0]
+        y = used_position[-1][1]
+        for i in (-1, 0, 1):
+            for j in (-1, 0, 1):
+                if 0 <= x + i < ROW and 0 <= y + j < ROW:
+                    if (x + i, y + j) not in used_position:
 
+                        current_str += position_dict[(x + i, y + j)]
 
-def next_(key):
-    connect_list = []
-    if key == 0:
-        connect = [key + 1, key + SIDE_LENGTH, key + SIDE_LENGTH + 1]
-        connect_list += connect
-    # Lower left
-    elif key == SIDE_LENGTH * (SIDE_LENGTH - 1):
-        connect = [key + 1, key - SIDE_LENGTH, key - SIDE_LENGTH + 1]
-        connect_list += connect
-    # Upper right
-    elif key == SIDE_LENGTH - 1:
-        connect = [key - 1, key + SIDE_LENGTH - 1, key + SIDE_LENGTH]
-        connect_list += connect
-    # Lower right
-    elif key == SIDE_LENGTH * SIDE_LENGTH - 1:
-        connect = [key - 1, key - SIDE_LENGTH, key - SIDE_LENGTH - 1]
-        connect_list += connect
-    else:
-        # bottom limit
-        if key % SIDE_LENGTH == 0:
-            connect = [key - SIDE_LENGTH, key - SIDE_LENGTH + 1, key + 1, key + SIDE_LENGTH, key + SIDE_LENGTH + 1]
-            connect_list += connect
-        # top limit
-        elif key < SIDE_LENGTH:
-            connect = [key - 1, key + 1, key + SIDE_LENGTH, key + SIDE_LENGTH - 1, key + SIDE_LENGTH + 1]
-            connect_list += connect
-        # left limit
-        elif key > SIDE_LENGTH * (SIDE_LENGTH - 1):
-            connect = [key - SIDE_LENGTH - 1, key - SIDE_LENGTH, key - SIDE_LENGTH + 1, key - 1, key + 1]
-            connect_list += connect
-        # right limit
-        elif key % SIDE_LENGTH == SIDE_LENGTH-1:
-            connect = [key - SIDE_LENGTH - 1, key - SIDE_LENGTH, key - 1, key + SIDE_LENGTH, key + SIDE_LENGTH - 1]
-            connect_list += connect
-        else:
-            connect = [key - SIDE_LENGTH - 1, key - SIDE_LENGTH, key-SIDE_LENGTH+1, key-1, key+1, key+SIDE_LENGTH-1, key+SIDE_LENGTH, key+SIDE_LENGTH+1]
-            connect_list += connect
-    return connect_list
+                        if len(current_str) >= 4:
+                            words.append(current_str)
+                        used_position.append((x + i, y + j))
+                        if has_prefix(current_str, dictionary):
+                            find_real_word_helper(current_str, position_dict, used_position, words, dictionary)
 
+                        current_str = current_str[:len(current_str)-1]
+                        used_position.pop()
+    return words
 
-def read_dictionary(letter_list):
+def read_dictionary(letters):
     """
     This function reads file "dictionary.txt" stored in FILE
-    and appends words in each line into a Python list, but get rid of those useless words first.
+    and appends words in each line into a Python list
     """
+    d = {}
     with open(FILE) as f:
-        dictionary = []
         for line in f:
-            inside = True
-            for char in ALPHABET:
-                if char not in letter_list:
-                    if line.find(char) == -1:
-                        inside = True
-                    else:
-                        inside = False
-                        break
-            if inside is True:
-                dictionary.append(line.strip())
-        return dictionary
+            word = line.strip()
+            if word[0] in letters:
+                if word[0] in d:
+                    d[word[0]].append(word)
+                else:
+                    d[word[0]] = [word]
 
-
-def search_dictionary(word, dictionary):
-    if word in dictionary:
-        return True
-    return False
-
+    return d
 
 def has_prefix(sub_s, dictionary):
     """
     :param sub_s: (str) A substring that is constructed by neighboring letters on a 4x4 square grid
     :return: (bool) If there is any words with prefix stored in sub_s
     """
-    count = 0
-    for word in dictionary:
-        if count == 1:
-            return True
+    for word in dictionary[sub_s[0]]:
         if word.startswith(sub_s):
-            count += 1
-        else:
-            pass
+            return True
+    return False
+
 
 
 if __name__ == '__main__':
